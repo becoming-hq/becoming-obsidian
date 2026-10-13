@@ -1,0 +1,10 @@
+{
+  "id": "becoming",
+  "name": "Becoming",
+  "version": "0.1.0",
+  "minAppVersion": "1.4.10",
+  "description": "Sync your Becoming highlights into your vault, one note per book, article, video or podcast.",
+  "author": "Becoming",
+  "authorUrl": "https://usebecoming.com",
+  "isDesktopOnly": false
+}
