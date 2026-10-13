@@ -18,6 +18,7 @@ export default class BecomingPlugin extends Plugin implements Store {
   data!: PluginData;
   connecting: AbortController | null = null;
   private api!: BecomingApi;
+  private writer!: Writer;
   private syncer!: Syncer;
   private settingTab!: BecomingSettingTab;
   private statusBar!: HTMLElement;
@@ -30,6 +31,7 @@ export default class BecomingPlugin extends Plugin implements Store {
       fetchSource: (id) => this.api.source(id),
       notify: (message) => new Notice(message),
     });
+    this.writer = writer;
     this.syncer = new Syncer(this.api, writer, this, {
       notify: (message) => new Notice(message),
       statusChanged: () => this.renderStatus(),
@@ -81,6 +83,12 @@ export default class BecomingPlugin extends Plugin implements Store {
     if (hours > 0) {
       this.syncTimer = this.registerInterval(window.setInterval(() => void this.syncer.run(), hours * 3_600_000));
     }
+  }
+
+  async setResyncDeleted(on: boolean): Promise<void> {
+    this.data.resyncDeleted = on;
+    if (on) this.writer.queueDeleted();
+    await this.save();
   }
 
   manageUrl(): string {

@@ -38,10 +38,11 @@ export class Writer {
     else await this.append(source);
   }
 
-  // Sources whose file the reader deleted while "Resync deleted files" was on.
-  // One that turns up again (a rename synced from another device arrives as
-  // delete + create) is only re-mapped.
+  // Deleted notes queued while "Resync deleted files" is on. One that turns up
+  // again (a rename synced from another device arrives as delete + create) is
+  // only re-mapped.
   async refetchQueued(): Promise<void> {
+    if (!this.data.resyncDeleted) return;
     for (const id of [...this.data.refetch]) {
       if (!this.locate(id)) {
         const file = await this.options.fetchSource(id);
@@ -49,6 +50,11 @@ export class Writer {
       }
       this.data.refetch = this.data.refetch.filter((queued) => queued !== id);
     }
+  }
+
+  // "Resync deleted files" turned on: notes deleted while it was off come back too.
+  queueDeleted(): void {
+    this.data.refetch = [...new Set([...this.data.refetch, ...this.data.deleted])];
   }
 
   renamed(oldPath: string, newPath: string): boolean {

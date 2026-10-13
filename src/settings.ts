@@ -123,10 +123,7 @@ export class BecomingSettingTab extends PluginSettingTab {
       .setName('Resync deleted files')
       .setDesc('When you delete a Becoming note, write it again in full at the next sync.')
       .addToggle((toggle) =>
-        toggle.setValue(data.resyncDeleted).onChange(async (value) => {
-          data.resyncDeleted = value;
-          await this.plugin.save();
-        }),
+        toggle.setValue(data.resyncDeleted).onChange((value) => this.plugin.setResyncDeleted(value)),
       );
   }
 

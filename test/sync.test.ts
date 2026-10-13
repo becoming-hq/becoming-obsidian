@@ -221,6 +221,24 @@ describe('Syncer with the writer', () => {
     expect(api.ack).toHaveBeenCalledWith([6, 7], true);
   });
 
+  it('writes notes deleted while the setting was off at the next sync once it is on', async () => {
+    const { syncer, vault, writer, data, fetchSource } = withWriter([{ has_more: false, sources: [] }]);
+    vault.put(PATH, FULL);
+    data.sources[42] = { path: PATH, hash: null };
+    vault.files.delete(PATH);
+    writer.deleted(PATH);
+    expect(data.refetch).toEqual([]);
+
+    data.resyncDeleted = true;
+    writer.queueDeleted();
+    await syncer.run();
+
+    expect(fetchSource).toHaveBeenCalledWith(42);
+    expect(vault.files.get(PATH)).toBe(FULL);
+    expect(data.deleted).toEqual([]);
+    expect(data.refetch).toEqual([]);
+  });
+
   it('skips a note the reader deleted, and still acks its ids', async () => {
     const { syncer, vault, api, fetchSource, data } = withWriter([{ has_more: false, sources: [APPEND] }]);
     data.deleted = [42];

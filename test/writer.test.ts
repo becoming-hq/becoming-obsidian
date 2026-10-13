@@ -294,6 +294,17 @@ describe('Writer', () => {
       expect(data.refetch).toEqual([]);
     });
 
+    it('waits while the setting is off', async () => {
+      vault.files.delete(PATH);
+      writer.deleted(PATH);
+      data.resyncDeleted = false;
+
+      await writer.refetchQueued();
+
+      expect(fetchSource).not.toHaveBeenCalled();
+      expect(data.refetch).toEqual([42]);
+    });
+
     it('only re-maps a file that turned up elsewhere', async () => {
       vault.move(PATH, 'Moved/Un Mundo Feliz.md');
       writer.deleted(PATH);
