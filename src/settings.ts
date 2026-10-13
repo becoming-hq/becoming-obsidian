@@ -101,6 +101,7 @@ export class BecomingSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('Sync when Obsidian opens')
+      .setDesc('Starts 30 seconds after the vault loads, so Obsidian Sync or iCloud can bring your notes down first.')
       .addToggle((toggle) =>
         toggle.setValue(data.syncOnOpen).onChange(async (value) => {
           data.syncOnOpen = value;
@@ -121,7 +122,7 @@ export class BecomingSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('Resync deleted files')
-      .setDesc('When you delete a Becoming note, write it again in full at the next sync.')
+      .setDesc('Write deleted Becoming notes again in full at the next sync, including ones deleted before you turned this on.')
       .addToggle((toggle) =>
         toggle.setValue(data.resyncDeleted).onChange((value) => this.plugin.setResyncDeleted(value)),
       );
