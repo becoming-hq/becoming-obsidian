@@ -1,7 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type Append, ApiError, type FirstExport, type PendingPage, type PendingSource, type SourceFile } from '../src/api';
 import { defaultData, type PluginData, type Store } from '../src/settings';
-import { PAUSED_NOTICE, type SyncApi, Syncer, type SourceWriter } from '../src/sync';
+import { OPEN_DELAY_MS, PAUSED_NOTICE, type SyncApi, Syncer, type SourceWriter } from '../src/sync';
 import { Writer } from '../src/writer';
 import { FakeVault } from './fakeVault';
 
@@ -99,13 +99,48 @@ describe('Syncer', () => {
     expect(first.data.journal).toEqual([]);
   });
 
-  it('acks a leftover journal before asking for the next page', async () => {
-    const { syncer, events, data } = setup([{ has_more: false, sources: [source(2, [11])] }]);
-    data.journal = [10];
+  describe('on open', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
 
-    await syncer.start(true);
+    afterEach(() => {
+      vi.useRealTimers();
+    });
 
-    expect(events.slice(0, 3)).toEqual(['ack [10] false', 'save []', 'write 2']);
+    it('waits 30 s, then acks a leftover journal before asking for the next page', async () => {
+      const { syncer, events, data, api } = setup([{ has_more: false, sources: [source(2, [11])] }]);
+      data.journal = [10];
+
+      const started = syncer.start(true);
+      await vi.advanceTimersByTimeAsync(OPEN_DELAY_MS - 1);
+      expect(api.ack).not.toHaveBeenCalled();
+      expect(api.pending).not.toHaveBeenCalled();
+
+      await vi.advanceTimersByTimeAsync(1);
+      await started;
+
+      expect(events.slice(0, 3)).toEqual(['ack [10] false', 'save []', 'write 2']);
+    });
+
+    it('does not sync once the plugin unloaded during the wait', async () => {
+      const { syncer, api } = setup();
+
+      const started = syncer.start(true);
+      syncer.stop();
+      await vi.advanceTimersByTimeAsync(OPEN_DELAY_MS);
+      await started;
+
+      expect(api.pending).not.toHaveBeenCalled();
+    });
+  });
+
+  it('syncs at once when asked', async () => {
+    const { syncer, api } = setup();
+
+    await syncer.run(true);
+
+    expect(api.pending).toHaveBeenCalledOnce();
   });
 
   it('shows "syncing on another device" on a 409 and keeps the token', async () => {

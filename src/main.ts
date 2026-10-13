@@ -70,6 +70,7 @@ export default class BecomingPlugin extends Plugin implements Store {
 
   override onunload(): void {
     this.connecting?.abort();
+    this.syncer.stop();
   }
 
   async save(): Promise<void> {

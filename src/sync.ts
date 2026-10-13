@@ -19,10 +19,12 @@ export interface SyncHooks {
 }
 
 export const PAUSED_NOTICE = 'Sync paused — your Becoming plan ended. Your files stay in your vault.';
+export const OPEN_DELAY_MS = 30_000;
 
 export class Syncer {
   status: Status = 'idle';
   private running = false;
+  private stopped = false;
 
   constructor(
     private readonly api: SyncApi,
@@ -31,13 +33,21 @@ export class Syncer {
     private readonly hooks: SyncHooks,
   ) {}
 
-  start(syncOnOpen: boolean): Promise<void> {
-    if (syncOnOpen) return this.run();
-    if (this.store.data.journal.length === 0) return Promise.resolve();
+  async start(syncOnOpen: boolean): Promise<void> {
+    if (syncOnOpen) {
+      // Gives Obsidian Sync or iCloud time to bring this device's notes down first.
+      await new Promise((resolve) => setTimeout(resolve, OPEN_DELAY_MS));
+      return this.run();
+    }
+    if (this.store.data.journal.length === 0) return;
     return this.guard(false, async () => {
       await this.ackJournal(false);
       return 0;
     });
+  }
+
+  stop(): void {
+    this.stopped = true;
   }
 
   run(manual = false): Promise<void> {
@@ -82,6 +92,7 @@ export class Syncer {
   }
 
   private async guard(manual: boolean, work: () => Promise<number>): Promise<void> {
+    if (this.stopped) return;
     if (this.running) {
       if (manual) this.hooks.notify('Becoming is already syncing.');
       return;
