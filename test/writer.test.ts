@@ -203,7 +203,7 @@ describe('Writer', () => {
       expect(vault.files.get('Archive/Copy.md')).toBe(KINDLE_BOOK);
     });
 
-    it('skips a deleted file when resync is off', async () => {
+    it('skips a note the reader deleted when resync is off', async () => {
       vault.files.delete(PATH);
       writer.deleted(PATH);
 
@@ -211,7 +211,23 @@ describe('Writer', () => {
 
       expect(fetchSource).not.toHaveBeenCalled();
       expect(vault.files.size).toBe(0);
+      expect(data.deleted).toEqual([42]);
       expect(data.refetch).toEqual([]);
+    });
+
+    it.each([
+      ['still mapped', () => {}],
+      ['unknown to the map', () => (data.sources = {})],
+    ])('writes a missing note that was never deleted in full (%s)', async (_, forget) => {
+      vault.files.delete(PATH);
+      forget();
+      fetchSource.mockResolvedValue({ source_id: 42, folder: 'books', file_name: 'Un Mundo Feliz', markdown: APPENDED });
+
+      await writer.write(append());
+
+      expect(fetchSource).toHaveBeenCalledWith(42);
+      expect(vault.files.get(PATH)).toBe(APPENDED);
+      expect(data.sources[42]?.path).toBe(PATH);
     });
 
     it('fetches the whole file again for a deleted file when resync is on', async () => {

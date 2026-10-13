@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiError, type FirstExport, type PendingPage, type PendingSource } from '../src/api';
+import { type Append, ApiError, type FirstExport, type PendingPage, type PendingSource, type SourceFile } from '../src/api';
 import { defaultData, type PluginData, type Store } from '../src/settings';
 import { PAUSED_NOTICE, type SyncApi, Syncer, type SourceWriter } from '../src/sync';
+import { Writer } from '../src/writer';
+import { FakeVault } from './fakeVault';
 
 function source(id: number, highlightIds: number[]): FirstExport {
   return { source_id: id, folder: 'books', file_name: `Book ${id}`, first_export: true, highlight_ids: highlightIds, markdown: `# ${id}\n` };
@@ -176,5 +178,57 @@ describe('Syncer', () => {
     await syncer.resyncEverything();
 
     expect(events.slice(0, 4)).toEqual(['ack [9] false', 'save []', 'reset', 'write 1']);
+  });
+});
+
+describe('Syncer with the writer', () => {
+  const PATH = 'Becoming/books/Brave New World.md';
+  const FULL = '---\nbecoming_url: https://app.usebecoming.com/reader/42\nhighlights: 3\n---\n\n- a\n- b\n- c\n';
+  const APPEND: Append = {
+    source_id: 42,
+    folder: 'books',
+    file_name: 'Brave New World',
+    first_export: false,
+    highlight_ids: [6, 7],
+    heading: '## New highlights added Oct 13, 2026',
+    bullets: '- b\n- c\n',
+    exported_at: '2026-10-13T09:30:00Z',
+  };
+
+  function withWriter(pages: PendingPage[]) {
+    const vault = new FakeVault();
+    const data: PluginData = { ...defaultData(), token: 'secret' };
+    const fetchSource = vi.fn(
+      async (id: number): Promise<SourceFile> => ({ source_id: id, folder: 'books', file_name: 'Brave New World', markdown: FULL }),
+    );
+    const writer = new Writer(vault, data, { fetchSource, notify: vi.fn() });
+    const api = {
+      pending: vi.fn(async (): Promise<PendingPage> => pages.shift() ?? { has_more: false, sources: [] }),
+      ack: vi.fn(async () => {}),
+      reset: vi.fn(async () => {}),
+    } satisfies SyncApi;
+    const syncer = new Syncer(api, writer, { data, save: vi.fn(async () => {}) }, { notify: vi.fn(), statusChanged: vi.fn() });
+    return { vault, data, fetchSource, writer, api, syncer };
+  }
+
+  it('writes a note missing on this device in full, then acks its ids', async () => {
+    const { syncer, vault, api, fetchSource } = withWriter([{ has_more: false, sources: [APPEND] }]);
+
+    await syncer.run();
+
+    expect(fetchSource).toHaveBeenCalledWith(42);
+    expect(vault.files.get(PATH)).toBe(FULL);
+    expect(api.ack).toHaveBeenCalledWith([6, 7], true);
+  });
+
+  it('skips a note the reader deleted, and still acks its ids', async () => {
+    const { syncer, vault, api, fetchSource, data } = withWriter([{ has_more: false, sources: [APPEND] }]);
+    data.deleted = [42];
+
+    await syncer.run();
+
+    expect(fetchSource).not.toHaveBeenCalled();
+    expect(vault.files.size).toBe(0);
+    expect(api.ack).toHaveBeenCalledWith([6, 7], true);
   });
 });

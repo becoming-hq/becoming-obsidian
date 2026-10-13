@@ -104,7 +104,9 @@ export class Writer {
   private async append(source: Append): Promise<void> {
     const found = this.locate(source.source_id, this.defaultPath(source));
     if (!found) {
-      if (!this.data.resyncDeleted) return;
+      // Missing is not deleted: a note a vault sync has not brought to this
+      // device yet is written in full, never acknowledged unwritten.
+      if (this.data.deleted.includes(source.source_id) && !this.data.resyncDeleted) return;
       const file = await this.options.fetchSource(source.source_id);
       if (file) await this.writeFile(file);
       return;
