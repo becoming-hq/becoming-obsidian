@@ -229,6 +229,37 @@ describe('Writer', () => {
     });
   });
 
+  describe('deletions', () => {
+    beforeEach(async () => {
+      await writer.write(firstExport());
+    });
+
+    it('records a delete, including one synced in from another device', () => {
+      vault.files.delete(PATH);
+
+      expect(writer.deleted(PATH)).toBe(true);
+
+      expect(data.deleted).toEqual([42]);
+      expect(data.sources[42]).toBeUndefined();
+      expect(data.refetch).toEqual([]);
+    });
+
+    it('ignores a delete of a note it does not track', () => {
+      expect(writer.deleted('Elsewhere/Other.md')).toBe(false);
+      expect(data.deleted).toEqual([]);
+    });
+
+    it('forgets the delete once the source is written again', async () => {
+      vault.files.delete(PATH);
+      writer.deleted(PATH);
+
+      await writer.write(firstExport());
+
+      expect(data.deleted).toEqual([]);
+      expect(vault.files.get(PATH)).toBe(KINDLE_BOOK);
+    });
+  });
+
   describe('refetch queue', () => {
     beforeEach(async () => {
       data.resyncDeleted = true;

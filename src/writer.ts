@@ -19,7 +19,10 @@ export interface WriterOptions {
   notify(message: string): void;
 }
 
-type WriterData = Pick<PluginData, 'baseFolder' | 'groupByCategory' | 'resyncDeleted' | 'sources' | 'refetch'>;
+type WriterData = Pick<
+  PluginData,
+  'baseFolder' | 'groupByCategory' | 'resyncDeleted' | 'sources' | 'refetch' | 'deleted'
+>;
 
 const FRONTMATTER = /^---\r?\n[\s\S]*?\r?\n---(?=\r?\n|$)/;
 
@@ -65,6 +68,7 @@ export class Writer {
       if (!within(entry.path, path)) continue;
       delete this.data.sources[key];
       const id = Number(key);
+      if (!this.data.deleted.includes(id)) this.data.deleted.push(id);
       if (this.data.resyncDeleted && !this.data.refetch.includes(id)) this.data.refetch.push(id);
       changed = true;
     }
@@ -148,8 +152,10 @@ export class Writer {
     return joinPath(this.data.baseFolder, folder, `${source.file_name}.md`);
   }
 
+  // A source mapped to a note in the vault is no longer a deleted one.
   private record(id: number, path: string, hash: string | null): void {
     this.data.sources[id] = { path, hash };
+    this.data.deleted = this.data.deleted.filter((deleted) => deleted !== id);
   }
 }
 

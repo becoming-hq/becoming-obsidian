@@ -21,6 +21,8 @@ export interface PluginData {
   sources: Record<string, SourceEntry>;
   journal: number[];
   refetch: number[];
+  // Sources whose note was deleted in this vault, here or synced in from another device.
+  deleted: number[];
 }
 
 export interface Store {
@@ -52,6 +54,7 @@ export function defaultData(): PluginData {
     sources: {},
     journal: [],
     refetch: [],
+    deleted: [],
   };
 }
 
