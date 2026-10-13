@@ -33,6 +33,9 @@ describe('connect', () => {
     expect(url.searchParams.get('name')).toBe('Obsidian · My vault · macOS');
     expect(flow.poll).toHaveBeenCalledTimes(3);
     expect(flow.poll).toHaveBeenCalledWith(url.searchParams.get('code'));
+
+    await vi.advanceTimersByTimeAsync(10 * POLL_INTERVAL_MS);
+    expect(flow.poll).toHaveBeenCalledTimes(3);
   });
 
   it('stops when the code expired', async () => {

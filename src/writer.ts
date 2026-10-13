@@ -74,18 +74,27 @@ export class Writer {
   private async writeFile(file: SourceFile): Promise<void> {
     const target = this.defaultPath(file);
     const found = this.locate(file.source_id, target);
-    let path: string;
     if (!found) {
-      path = await this.createFree(dirname(target), file.file_name, file.markdown);
-    } else if (await this.untouched(file.source_id, await this.vault.read(found))) {
-      await this.vault.modify(found, file.markdown);
-      path = found;
-    } else {
-      path = await this.createFree(dirname(found), file.file_name, file.markdown);
-      this.options.notify(`Becoming kept your edits in “${found}” and wrote a fresh copy to “${path}”.`);
+      const path = await this.createFree(dirname(target), file.file_name, file.markdown);
+      return this.written(file.source_id, path, file.markdown);
     }
-    this.record(file.source_id, path, await sha256(file.markdown));
-    this.data.refetch = this.data.refetch.filter((id) => id !== file.source_id);
+    const current = await this.vault.read(found);
+    if (await this.untouched(file.source_id, current)) {
+      await this.vault.modify(found, file.markdown);
+      return this.written(file.source_id, found, file.markdown);
+    }
+    // A note from the Markdown zip is this file but for its export date: adopt it as it is.
+    if (!this.data.sources[file.source_id]?.hash && sameExport(current, file.markdown)) {
+      return this.written(file.source_id, found, current);
+    }
+    const path = await this.createFree(dirname(found), file.file_name, file.markdown);
+    this.options.notify(`Becoming kept your edits in “${found}” and wrote a fresh copy to “${path}”.`);
+    return this.written(file.source_id, path, file.markdown);
+  }
+
+  private async written(id: number, path: string, content: string): Promise<void> {
+    this.record(id, path, await sha256(content));
+    this.data.refetch = this.data.refetch.filter((queued) => queued !== id);
   }
 
   private async append(source: Append): Promise<void> {
@@ -156,6 +165,12 @@ export function appendHighlights(
       .replace(/^exported_at: .+$/m, () => `exported_at: ${append.exported_at}`),
   );
   return `${bumped.replace(/[\r\n]+$/, '')}\n\n${append.heading}\n\n${append.bullets}`;
+}
+
+function sameExport(a: string, b: string): boolean {
+  const withoutDate = (content: string) =>
+    content.replace(FRONTMATTER, (block) => block.replace(/^exported_at: .+(\r?\n|$)/m, ''));
+  return withoutDate(a) === withoutDate(b);
 }
 
 // macOS and Windows file systems ignore case, Obsidian's lookups do not.

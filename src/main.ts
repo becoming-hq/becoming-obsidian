@@ -1,5 +1,5 @@
 import { Notice, Platform, Plugin } from 'obsidian';
-import { BecomingApi } from './api';
+import { BecomingApi, installClientId } from './api';
 import { connect, deviceName } from './connect';
 import { ObsidianVault, whenCacheReady } from './obsidianVault';
 import { ResyncModal } from './resyncModal';
@@ -25,7 +25,7 @@ export default class BecomingPlugin extends Plugin implements Store {
 
   override async onload(): Promise<void> {
     this.data = withDefaults(await this.loadData());
-    this.api = new BecomingApi(this.data);
+    this.api = new BecomingApi(this.data, installClientId(window.localStorage));
     const writer = new Writer(new ObsidianVault(this.app), this.data, {
       fetchSource: (id) => this.api.source(id),
       notify: (message) => new Notice(message),

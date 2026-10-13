@@ -100,6 +100,37 @@ describe('Writer', () => {
     });
   });
 
+  describe('first export onto a note from the Markdown zip', () => {
+    const fromServer = KINDLE_BOOK.replace('exported_at: 2026-09-27T14:03:00Z', 'exported_at: 2026-10-13T09:30:00Z');
+
+    it('adopts a note that differs only by exported_at, writing nothing', async () => {
+      vault.put('Imports/Un Mundo Feliz.md', KINDLE_BOOK);
+      const create = vi.spyOn(vault, 'create');
+      const modify = vi.spyOn(vault, 'modify');
+
+      await writer.write(firstExport(fromServer));
+
+      expect(create).not.toHaveBeenCalled();
+      expect(modify).not.toHaveBeenCalled();
+      expect(vault.files.get('Imports/Un Mundo Feliz.md')).toBe(KINDLE_BOOK);
+      expect(data.sources[42]).toEqual({ path: 'Imports/Un Mundo Feliz.md', hash: await sha256(KINDLE_BOOK) });
+      expect(notify).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['the server has a highlight more', KINDLE_BOOK, fromServer.replace('## Notes', '- One more.\n\n## Notes')],
+      ['the reader edited the note', `${KINDLE_BOOK}\nMy own thoughts.\n`, fromServer],
+    ])('writes a sibling when %s', async (_, inVault, markdown) => {
+      vault.put('Imports/Un Mundo Feliz.md', inVault);
+
+      await writer.write(firstExport(markdown));
+
+      expect(vault.files.get('Imports/Un Mundo Feliz.md')).toBe(inVault);
+      expect(vault.files.get('Imports/Un Mundo Feliz 2.md')).toBe(markdown);
+      expect(data.sources[42]?.path).toBe('Imports/Un Mundo Feliz 2.md');
+    });
+  });
+
   describe('append', () => {
     beforeEach(async () => {
       await writer.write(firstExport());

@@ -59,8 +59,24 @@ export interface ApiConfig {
   token: string | null;
 }
 
+export const CLIENT_ID_KEY = 'becoming-obsidian-client-id';
+
+// Per install, in the device's localStorage rather than data.json: Obsidian Sync
+// can carry data.json, and its token, to another device, and the server's lease
+// tells installs sharing a token apart by this id.
+export function installClientId(storage: Pick<Storage, 'getItem' | 'setItem'>): string {
+  const saved = storage.getItem(CLIENT_ID_KEY);
+  if (saved) return saved;
+  const id = crypto.randomUUID();
+  storage.setItem(CLIENT_ID_KEY, id);
+  return id;
+}
+
 export class BecomingApi {
-  constructor(private readonly config: ApiConfig) {}
+  constructor(
+    private readonly config: ApiConfig,
+    private readonly clientId: string,
+  ) {}
 
   // 429 and 5xx keep the poll going: the code stays valid for ten minutes.
   async exchangeCode(code: string): Promise<TokenPoll> {
@@ -94,18 +110,18 @@ export class BecomingApi {
   }
 
   private async call(method: string, path: string, body?: object): Promise<RequestUrlResponse> {
-    const response = await this.send(method, path, body, this.config.token);
+    const headers: Record<string, string> = { 'X-Obsidian-Client': this.clientId };
+    if (this.config.token) headers.Authorization = `Bearer ${this.config.token}`;
+    const response = await this.send(method, path, body, headers);
     if (response.status < 200 || response.status >= 300) throw new ApiError(response.status);
     return response;
   }
 
-  private send(method: string, path: string, body?: object, token?: string | null) {
-    const headers: Record<string, string> = { Accept: 'application/json' };
-    if (token) headers.Authorization = `Bearer ${token}`;
+  private send(method: string, path: string, body?: object, headers: Record<string, string> = {}) {
     return requestUrl({
       url: `${this.config.apiBaseUrl.replace(/\/+$/, '')}${path}`,
       method,
-      headers,
+      headers: { Accept: 'application/json', ...headers },
       contentType: body ? 'application/json' : undefined,
       body: body ? JSON.stringify(body) : undefined,
       throw: false,
