@@ -1,6 +1,6 @@
 {
   "name": "becoming-obsidian",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Sync your Becoming highlights into your vault, one note per book, article, video or podcast.",
   "private": true,
   "type": "module",
