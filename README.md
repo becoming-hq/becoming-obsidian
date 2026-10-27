@@ -98,10 +98,11 @@ Connecting stores a token in the plugin's `data.json`, inside your vault's confi
 record what was synced; it cannot change anything else in your account. If your vault syncs
 through iCloud, Git or another service, the token travels with it.
 
-**Disconnect** in the plugin settings forgets the token on this device only; the token itself
-keeps working. **Remove** next to the device on
-[Settings › Exports › Obsidian](https://app.usebecoming.com/settings/exports/obsidian) in Becoming
-revokes it. A token unused for 180 days is revoked on its own.
+**Disconnect** in the plugin settings forgets the token in this vault's plugin data; the token
+itself keeps working. If Obsidian Sync or iCloud shares that data between your devices, every one
+of them disconnects (Obsidian 1.5.7 or later picks the change up while open). **Remove** next to
+the device on [Settings › Exports › Obsidian](https://app.usebecoming.com/settings/exports/obsidian)
+in Becoming revokes the token. A token unused for 180 days is revoked on its own.
 
 ## Development
 

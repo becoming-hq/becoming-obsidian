@@ -1,9 +1,10 @@
 import { Notice, Platform, Plugin } from 'obsidian';
 import { BecomingApi, installClientId } from './api';
 import { connect, deviceName } from './connect';
+import { DataStore } from './dataStore';
 import { ObsidianVault, whenCacheReady } from './obsidianVault';
 import { ResyncModal } from './resyncModal';
-import { BecomingSettingTab, type PluginData, type Store, withDefaults } from './settings';
+import { BecomingSettingTab, type PluginData, withDefaults } from './settings';
 import { statusText } from './status';
 import { Syncer } from './sync';
 import { Writer } from './writer';
@@ -14,25 +15,28 @@ const CONNECT_FAILURES = {
   timeout: 'No approval arrived within 10 minutes. Click Connect to try again.',
 };
 
-export default class BecomingPlugin extends Plugin implements Store {
+export default class BecomingPlugin extends Plugin {
   data!: PluginData;
   connecting: AbortController | null = null;
+  private store!: DataStore;
   private api!: BecomingApi;
   private writer!: Writer;
   private syncer!: Syncer;
   private settingTab!: BecomingSettingTab;
   private statusBar!: HTMLElement;
   private syncTimer: number | null = null;
+  private scheduledHours = 0;
 
   override async onload(): Promise<void> {
     this.data = withDefaults(await this.loadData());
+    this.store = new DataStore(this.data, (data) => this.saveData(data), () => this.syncer.idle());
     this.api = new BecomingApi(this.data, installClientId(window.localStorage));
     const writer = new Writer(new ObsidianVault(this.app), this.data, {
       fetchSource: (id) => this.api.source(id),
       notify: (message) => new Notice(message),
     });
     this.writer = writer;
-    this.syncer = new Syncer(this.api, writer, this, {
+    this.syncer = new Syncer(this.api, writer, this.store, {
       notify: (message) => new Notice(message),
       statusChanged: () => this.renderStatus(),
     });
@@ -74,13 +78,29 @@ export default class BecomingPlugin extends Plugin implements Store {
   }
 
   async save(): Promise<void> {
-    await this.saveData(this.data);
+    await this.store.save();
+  }
+
+  // Obsidian 1.5.7+: data.json changed on disk, usually from another device through Obsidian Sync or iCloud.
+  override async onExternalSettingsChange(): Promise<void> {
+    let disk: PluginData;
+    try {
+      disk = withDefaults(await this.loadData());
+    } catch (error) {
+      console.error('Becoming could not read its changed data.json', error);
+      return;
+    }
+    if (!(await this.store.reload(disk))) return;
+    if (this.data.frequencyHours !== this.scheduledHours) this.scheduleSync();
+    this.settingTab.display();
+    this.renderStatus();
   }
 
   scheduleSync(): void {
     if (this.syncTimer !== null) window.clearInterval(this.syncTimer);
     this.syncTimer = null;
     const hours = this.data.frequencyHours;
+    this.scheduledHours = hours;
     if (hours > 0) {
       this.syncTimer = this.registerInterval(window.setInterval(() => void this.syncer.run(), hours * 3_600_000));
     }

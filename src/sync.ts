@@ -25,6 +25,7 @@ export class Syncer {
   status: Status = 'idle';
   private running = false;
   private stopped = false;
+  private current: Promise<void> = Promise.resolve();
 
   constructor(
     private readonly api: SyncApi,
@@ -48,6 +49,11 @@ export class Syncer {
 
   stop(): void {
     this.stopped = true;
+  }
+
+  // Resolves when no sync is running.
+  idle(): Promise<void> {
+    return this.current;
   }
 
   run(manual = false): Promise<void> {
@@ -91,18 +97,23 @@ export class Syncer {
     await this.store.save();
   }
 
-  private async guard(manual: boolean, work: () => Promise<number>): Promise<void> {
-    if (this.stopped) return;
+  private guard(manual: boolean, work: () => Promise<number>): Promise<void> {
+    if (this.stopped) return Promise.resolve();
     if (this.running) {
       if (manual) this.hooks.notify('Becoming is already syncing.');
-      return;
+      return Promise.resolve();
     }
     if (!this.store.data.token) {
       if (manual) this.hooks.notify('Connect Becoming in the plugin settings first.');
-      return;
+      return Promise.resolve();
     }
-    const before = this.status;
     this.running = true;
+    this.current = this.execute(manual, work).catch((error: unknown) => console.error('Becoming sync failed', error));
+    return this.current;
+  }
+
+  private async execute(manual: boolean, work: () => Promise<number>): Promise<void> {
+    const before = this.status;
     this.setStatus('syncing');
     try {
       const count = await work();
