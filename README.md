@@ -3,7 +3,7 @@
 Keeps your [Becoming](https://usebecoming.com) highlights in your vault: one note per book, article,
 video or podcast, with your notes and tags, updated as you read. It works on desktop and mobile.
 
-You need a Becoming account with an active plan.
+Becoming is a paid service: you need a Becoming account with an active plan.
 
 ## Install
 
@@ -88,8 +88,12 @@ The plugin talks only to Becoming:
   button.
 
 It needs a Becoming account with an active plan. If your plan ends, syncing pauses and every note
-already in your vault stays. The plugin sends no analytics of its own. Nothing from your vault
-is sent to Becoming except the vault's name, which labels the device when you connect.
+already in your vault stays. Nothing from your vault is sent to Becoming except the vault's name,
+which labels the device when you connect.
+
+The plugin sends no analytics of its own. Becoming's servers record each sync (when it ran, how many
+highlights it wrote and how long it took) to show it in your settings and to see how syncing is
+used. The [privacy policy](https://usebecoming.com/privacy-policy) explains how that data is handled.
 
 ## Your token
 
