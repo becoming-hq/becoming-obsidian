@@ -7,12 +7,8 @@ Becoming is a paid service: you need a Becoming account with an active plan.
 
 ## Install
 
-Until the plugin is listed in Obsidian's community plugins, install it with BRAT:
-
-1. In Obsidian, open **Settings → Community plugins → Browse**, search for **BRAT**, install and
-   enable it.
-2. Open **Settings → BRAT → Add beta plugin**, enter `becoming-hq/becoming-obsidian` and add it.
-3. In **Settings → Community plugins**, enable **Becoming**.
+1. In Obsidian, open **Settings → Community plugins → Browse** and search for **Becoming**.
+2. Click **Install**, then **Enable**.
 
 ## Connect
 
