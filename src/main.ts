@@ -28,7 +28,7 @@ export default class BecomingPlugin extends Plugin {
   private scheduledHours = 0;
 
   override async onload(): Promise<void> {
-    this.data = withDefaults(await this.loadData());
+    this.data = withDefaults((await this.loadData()) as Partial<PluginData> | null);
     this.store = new DataStore(this.data, (data) => this.saveData(data), () => this.syncer.idle());
     this.api = new BecomingApi(this.data, installClientId(window.localStorage));
     const writer = new Writer(new ObsidianVault(this.app), this.data, {
@@ -85,7 +85,7 @@ export default class BecomingPlugin extends Plugin {
   override async onExternalSettingsChange(): Promise<void> {
     let disk: PluginData;
     try {
-      disk = withDefaults(await this.loadData());
+      disk = withDefaults((await this.loadData()) as Partial<PluginData> | null);
     } catch (error) {
       console.error('Becoming could not read its changed data.json', error);
       return;

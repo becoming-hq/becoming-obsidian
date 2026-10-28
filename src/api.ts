@@ -82,14 +82,14 @@ export class BecomingApi {
   async exchangeCode(code: string): Promise<TokenPoll> {
     const response = await this.send('POST', '/exports/obsidian/tokens', { code });
     const { status } = response;
-    if (status === 201) return { kind: 'token', token: response.json.token };
+    if (status === 201) return { kind: 'token', token: (response.json as { token: string }).token };
     if (status === 410) return { kind: 'expired' };
     if (status === 202 || status === 429 || status >= 500) return { kind: 'pending' };
     return { kind: 'rejected' };
   }
 
   async pending(): Promise<PendingPage> {
-    return (await this.call('GET', '/exports/obsidian/pending')).json;
+    return (await this.call('GET', '/exports/obsidian/pending')).json as PendingPage;
   }
 
   async ack(ids: number[], lastPage: boolean): Promise<void> {
@@ -98,7 +98,7 @@ export class BecomingApi {
 
   async source(id: number): Promise<SourceFile | null> {
     try {
-      return (await this.call('GET', `/exports/obsidian/sources/${id}`)).json;
+      return (await this.call('GET', `/exports/obsidian/sources/${id}`)).json as SourceFile;
     } catch (error) {
       if (error instanceof ApiError && error.kind === 'not_found') return null;
       throw error;

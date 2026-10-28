@@ -37,7 +37,7 @@ export class Syncer {
   async start(syncOnOpen: boolean): Promise<void> {
     if (syncOnOpen) {
       // Gives Obsidian Sync or iCloud time to bring this device's notes down first.
-      await new Promise((resolve) => setTimeout(resolve, OPEN_DELAY_MS));
+      await new Promise((resolve) => window.setTimeout(resolve, OPEN_DELAY_MS));
       return this.run();
     }
     if (this.store.data.journal.length === 0) return;

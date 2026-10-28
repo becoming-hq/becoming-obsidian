@@ -8,8 +8,8 @@ const NAME_MAX = 60;
 export type ConnectOutcome = Exclude<TokenPoll, { kind: 'pending' }> | { kind: 'timeout' } | { kind: 'cancelled' };
 
 export interface ConnectDeps {
-  open(url: string): void;
-  poll(code: string): Promise<TokenPoll>;
+  open: (url: string) => void;
+  poll: (code: string) => Promise<TokenPoll>;
 }
 
 export function deviceName(vaultName: string, platform: string): string {
@@ -50,11 +50,11 @@ function sleep(ms: number, signal: AbortSignal): Promise<void> {
   return new Promise((resolve) => {
     if (signal.aborted) return resolve();
     const done = () => {
-      clearTimeout(timer);
+      window.clearTimeout(timer);
       signal.removeEventListener('abort', done);
       resolve();
     };
-    const timer = setTimeout(done, ms);
+    const timer = window.setTimeout(done, ms);
     signal.addEventListener('abort', done);
   });
 }
