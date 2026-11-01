@@ -43,12 +43,8 @@ export default class BecomingPlugin extends Plugin {
 
     this.settingTab = new BecomingSettingTab(this.app, this);
     this.addSettingTab(this.settingTab);
-    this.addCommand({ id: 'sync-now', name: 'Sync now', callback: () => void this.syncer.run(true) });
-    this.addCommand({
-      id: 'resync-everything',
-      name: 'Resync everything',
-      callback: () => new ResyncModal(this.app, () => void this.syncer.resyncEverything()).open(),
-    });
+    this.addCommand({ id: 'sync-now', name: 'Sync now', callback: () => this.syncNow() });
+    this.addCommand({ id: 'resync-everything', name: 'Resync everything', callback: () => this.confirmResync() });
 
     this.statusBar = this.addStatusBarItem();
     this.registerInterval(window.setInterval(() => this.renderStatus(), 60_000));
@@ -104,6 +100,14 @@ export default class BecomingPlugin extends Plugin {
     if (hours > 0) {
       this.syncTimer = this.registerInterval(window.setInterval(() => void this.syncer.run(), hours * 3_600_000));
     }
+  }
+
+  syncNow(): void {
+    void this.syncer.run(true);
+  }
+
+  confirmResync(): void {
+    new ResyncModal(this.app, () => void this.syncer.resyncEverything()).open();
   }
 
   async setResyncDeleted(on: boolean): Promise<void> {

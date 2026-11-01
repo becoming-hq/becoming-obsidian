@@ -147,6 +147,11 @@ export class BecomingSettingTab extends PluginSettingTab {
             await this.plugin.disconnect();
           }),
         );
+      new Setting(containerEl)
+        .setName('Sync')
+        .setDesc('Sync now brings in new highlights. Resync everything sends all your highlights again.')
+        .addButton((button) => button.setButtonText('Sync now').setCta().onClick(() => this.plugin.syncNow()))
+        .addButton((button) => button.setButtonText('Resync everything').onClick(() => this.plugin.confirmResync()));
     } else if (this.plugin.connecting) {
       setting
         .setName('Connect')
