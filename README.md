@@ -31,8 +31,9 @@ Every connection shows up, with its device name, on
 | Sync frequency | Every 12 hours | Manual, every hour, every 12 hours or every 24 hours, while Obsidian is open. |
 | Resync deleted files | Off | Write deleted Becoming notes again in full at the next sync, including notes deleted before you turned it on. |
 
-Commands: **Becoming: Sync now** and **Becoming: Resync everything**. On desktop the status bar shows
-when the last sync ran, or that sync is paused or not connected.
+**Sync now** and **Resync everything** are buttons under **Sync**, at the top of the settings, and
+commands in the command palette (**Becoming: Sync now**, **Becoming: Resync everything**). On desktop
+the status bar shows when the last sync ran, or that sync is paused or not connected.
 
 ## How syncing works
 
